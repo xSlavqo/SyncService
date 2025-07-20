@@ -1,5 +1,4 @@
-// com/utils/datasync/core/SocketServer.kt
-package com.utils.datasync.core
+package com.example.syncservice
 
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
@@ -11,7 +10,8 @@ import java.net.ServerSocket
 
 class SocketServer(private val port: Int, private val secretKey: String) {
 
-    private var isRunning = false
+    @Volatile private var isRunning = false
+    private var serverSocket: ServerSocket? = null
 
     fun start() {
         if (isRunning) return
@@ -19,13 +19,12 @@ class SocketServer(private val port: Int, private val secretKey: String) {
 
         GlobalScope.launch(Dispatchers.IO) {
             Log.d("SocketServer", "Server starting...")
-            var serverSocket: ServerSocket? = null
             try {
                 serverSocket = ServerSocket(port)
                 Log.d("SocketServer", "Server listening on port $port")
 
                 while (isRunning) {
-                    val clientSocket = serverSocket.accept()
+                    val clientSocket = serverSocket!!.accept()
                     val clientAddress = clientSocket.inetAddress.hostAddress
                     val reader = BufferedReader(InputStreamReader(clientSocket.getInputStream()))
                     val authMessage = reader.readLine()
@@ -33,7 +32,6 @@ class SocketServer(private val port: Int, private val secretKey: String) {
                     if (authMessage == secretKey) {
                         Log.d("SocketServer", "Client authenticated: $clientAddress")
                         // W przyszłości tutaj będzie pętla do odczytywania komend
-                        // Na razie tylko logujemy sukces i zamykamy
                     } else {
                         Log.w("SocketServer", "Failed auth attempt from: $clientAddress")
                     }
@@ -41,12 +39,23 @@ class SocketServer(private val port: Int, private val secretKey: String) {
                     clientSocket.close()
                 }
             } catch (e: Exception) {
-                Log.e("SocketServer", "Error in server loop", e)
+                if (isRunning) {
+                    Log.e("SocketServer", "Error in server loop", e)
+                }
             } finally {
-                serverSocket?.close()
-                isRunning = false
                 Log.d("SocketServer", "Server stopped.")
+                isRunning = false
             }
         }
+    }
+
+    fun stop() {
+        isRunning = false
+        try {
+            serverSocket?.close()
+        } catch (e: Exception) {
+            Log.e("SocketServer", "Error closing server socket", e)
+        }
+        Log.d("SocketServer", "Server stop requested.")
     }
 }

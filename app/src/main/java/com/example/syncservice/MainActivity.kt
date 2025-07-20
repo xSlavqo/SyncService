@@ -1,38 +1,48 @@
 package com.example.syncservice
 
+import android.content.Intent
 import android.os.Bundle
-import androidx.activity.enableEdgeToEdge
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
+import com.google.android.material.switchmaterial.SwitchMaterial
+import java.net.Inet4Address
+import java.net.NetworkInterface
 
 class MainActivity : AppCompatActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContentView(R.layout.activity_main)
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
+
+        val serviceSwitch: SwitchMaterial = findViewById(R.id.serviceSwitch)
+        val ipAddressTextView: TextView = findViewById(R.id.ipAddressTextView)
+
+        ipAddressTextView.text = getIpAddress() ?: "Not Found"
+
+        serviceSwitch.setOnCheckedChangeListener { _, isChecked ->
+            val serviceIntent = Intent(this, SocketService::class.java)
+            if (isChecked) {
+                startForegroundService(serviceIntent)
+            } else {
+                stopService(serviceIntent)
+            }
         }
     }
-}
 
-// com/utils/datasync/core/MainActivity.kt
-package com.utils.datasync.core
-
-import android.os.Bundle
-import androidx.appcompat.app.AppCompatActivity
-
-class MainActivity : AppCompatActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
-
-        val serverPort = 48151 // Wysoki, niestandardowy port
-        val serverKey = "aBcDeFgHiJkLmNoPqRsTuVwXyZ123456" // Zmień na swój własny, losowy klucz
-
-        SocketServer(serverPort, serverKey).start()
+    private fun getIpAddress(): String? {
+        try {
+            val networkInterfaces = NetworkInterface.getNetworkInterfaces().toList()
+            for (networkInterface in networkInterfaces) {
+                val addresses = networkInterface.inetAddresses.toList()
+                for (address in addresses) {
+                    if (!address.isLoopbackAddress && address is Inet4Address) {
+                        return address.hostAddress
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return null
     }
 }
