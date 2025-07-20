@@ -18,3 +18,21 @@ class MainActivity : AppCompatActivity() {
         }
     }
 }
+
+// com/utils/datasync/core/MainActivity.kt
+package com.utils.datasync.core
+
+import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
+
+class MainActivity : AppCompatActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
+        val serverPort = 48151 // Wysoki, niestandardowy port
+        val serverKey = "aBcDeFgHiJkLmNoPqRsTuVwXyZ123456" // Zmień na swój własny, losowy klucz
+
+        SocketServer(serverPort, serverKey).start()
+    }
+}
